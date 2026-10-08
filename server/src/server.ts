@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import apiRoutes from './routes/api';
 
 dotenv.config();
@@ -28,6 +29,22 @@ app.get('/api/health', (req, res) => {
 
 // Mount API router
 app.use('/api', apiRoutes);
+
+// Serve static frontend build assets (for single deployment)
+const clientDistPath = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientDistPath));
+
+// For SPA routing, serve index.html for non-API routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(clientDistPath, 'index.html'), (err) => {
+    if (err) {
+      next();
+    }
+  });
+});
 
 // Global error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

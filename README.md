@@ -58,7 +58,7 @@ College students prepare for technical campus placements using their resumes and
 ## 🏃 Running Locally
 
 ```bash
-# Install dependencies
+# Build client and server
 npm run build
 
 # Start both Backend & Frontend concurrently
@@ -69,47 +69,40 @@ Visit **`http://localhost:5173`** (or `http://localhost:5174`).
 
 ---
 
-## 🌐 Deploying on Render (Step-by-Step Guide)
+## 🌐 Deploying on Render (Single Web Service)
 
-Render allows you to host both the Backend API and Frontend Client easily.
+HireLens AI is configured for a **1-click single Web Service deployment on Render** that hosts both the Express API and the React Vite Frontend together from one single URL.
 
-### Option A: Deploying Backend as Web Service & Frontend as Static Site (Recommended)
+### Single Web Service Deployment Steps:
 
-#### Step 1: Deploy Backend (Web Service)
-1. Go to [Render Dashboard](https://dashboard.render.com/) ➔ Click **New + ➔ Web Service**.
-2. Connect your GitHub repository: `https://github.com/MayankPandey00/HireLensAI`.
-3. Fill in settings:
-   - **Name:** `hirelens-backend`
-   - **Root Directory:** `server`
-   - **Build Command:** `npm install && npm run build`
-   - **Start Command:** `node dist/server.js`
-4. Add Environment Variables (optional):
-   - `PORT` = `5000`
-   - `GEMINI_API_KEY` = *(Optional Gemini key)*
-5. Click **Create Web Service** and copy your backend URL (e.g., `https://hirelens-backend.onrender.com`).
+1. Sign in to your [Render Dashboard](https://dashboard.render.com/).
+2. Click **New +** ➔ Select **Web Service**.
+3. Connect your GitHub repository: `https://github.com/MayankPandey00/HireLensAI`.
+4. Configure the settings:
+   - **Name:** `hirelens-ai`
+   - **Language / Runtime:** `Node`
+   - **Branch:** `main`
+   - **Build Command:**
+     ```bash
+     npm install && npm --prefix server install && npm --prefix client install && npm run build
+     ```
+   - **Start Command:**
+     ```bash
+     node server/dist/server.js
+     ```
+   - **Instance Type:** `Free`
+5. Environment Variables (optional under **Environment** tab):
+   - `GEMINI_API_KEY` = *(Optional)* Your Google Gemini API key
+6. Click **Create Web Service**.
 
-#### Step 2: Deploy Frontend (Static Site)
-1. In Render Dashboard, click **New + ➔ Static Site**.
-2. Connect your GitHub repository: `https://github.com/MayankPandey00/HireLensAI`.
-3. Fill in settings:
-   - **Name:** `hirelens-frontend`
-   - **Root Directory:** `client`
-   - **Build Command:** `npm install && npm run build`
-   - **Publish Directory:** `dist`
-4. Go to **Redirects/Rewrites** tab in Render and add a rewrite rule for Single Page Application (SPA) routing:
-   - **Source:** `/*`
-   - **Destination:** `/index.html`
-   - **Action:** `Rewrite` (200)
-5. Click **Create Static Site**.
+Render will automatically build both frontend & backend and launch your full application under a single URL (e.g., `https://hirelens-ai.onrender.com`).
 
 ---
 
 ## 📤 Pushing Changes to GitHub
 
-To push all changes to your GitHub repository:
-
 ```bash
 git add .
-git commit -m "feat: dynamic assessment questions, live test timer, sequential navigation, and deployment updates"
+git commit -m "feat: single deployment config for render and readme update"
 git push origin main
 ```
