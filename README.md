@@ -8,56 +8,47 @@
 College students prepare for technical campus placements using their resumes and generic resources, but they don't know:
 1. **Resume Reality Check:** Whether they can actually defend the technical claims made on their resume (e.g., Redis caching, microservices, containerization, database indexing) when an interviewer presses them on failure modes and trade-offs.
 2. **Alignment:** Whether their skill profile aligns with their target company's hiring bar (e.g. Google L3, Amazon SDE 1, Microsoft, Atlassian).
-3. **Comprehensive Readiness:** Whether they are ready across Aptitude, CS Fundamentals, DSA, and Communication.
+3. **Dynamic Assessment:** Practice questions that dynamically refresh on every test attempt across Aptitude, CS Core, DSA, and Behavioral.
 4. **Top Risks:** What their biggest failure vulnerabilities are before walking into the interview.
 5. **Interactive Remediation:** What exact topics they should learn next and in what order.
 
 ---
 
-## 🚀 Key Features & Flow
+## 🚀 Key Features & Workflow
 
-1. **Landing Page:** Hero with electric aesthetic, core USP, value propositions, and quick recruiter hiring bars.
-2. **Resume Setup (`/setup`):** PDF resume drag-and-drop or text paste mode, with 1-click sample prefill for instant hackathon evaluation.
+1. **Landing Page:** Hero with electric aesthetic, core USP, value propositions, and recruiter hiring bar calibrators.
+2. **Resume Setup (`/setup`):** PDF resume drag-and-drop intake with 1-click **Pre-fill Random Sample Resume** rotation (Alex Rivers, Jordan Lee, Sam Taylor, Morgan Chen).
 3. **Resume Reality Check (`/reality-check`):**
    - Extracts technical claims under scrutiny.
    - Rates claim verifiability risk (`HIGH`, `MEDIUM`, `LOW`).
-   - Generates the exact tough defense question an interviewer will ask.
+   - Generates tough interviewer defense questions tailored to candidate claims.
    - Compares resume skills against target recruiter hiring bars.
-4. **Placement Assessment (`/assessment`):**
+4. **Dynamic Placement Assessment (`/assessment`):**
+   - **100% Dynamic Questions:** Shuffled and generated fresh on every attempt from extensive topic banks (`questionBank.ts`).
    - 5 Quantitative & Logical Aptitude questions.
    - 5 CS Fundamentals questions (DBMS query plans, OS concurrency, TCP/IP, OOP).
    - 2 Algorithmic DSA problems with starter code and complexity proofs.
-   - Timed quiz interface with category filtering and answer tracking.
+   - **Live Countdown Timer (`MM:SS`)**: Real-time test clock with color-coded warning (<5m amber, <1m red pulse).
+   - **Strict Sequential Navigation:** Tab-jumping disabled, leaving confirmation dialogs, and test reset on exit.
 5. **Virtual Interview Defense (`/interview`):**
-   - Live architectural defense where candidate must defend the claims on their resume.
-   - 3 Behavioral scenario questions evaluated with the STAR framework (Situation, Task, Action, Result).
+   - Live architectural defense where candidate defends technical claims from their resume.
+   - Behavioral scenario questions evaluated with the STAR framework (Situation, Task, Action, Result).
+   - Assessment lock preventing unauthorized re-entry to completed tests.
 6. **Results Dashboard (`/results`):**
    - Animated radial **Overall Readiness Score** (e.g., **71/100**).
    - 6 Category Competency Breakdown Cards with meters (Technical Knowledge, Aptitude, DSA, Communication, Project Defense, Role Alignment).
-   - **TOP 3 RISKS Section** explicitly highlighting:
-     1. **Project Defense**
-     2. **DSA - Sliding Window**
-     3. **DBMS - Query Optimization**
-     - Detailed explanation for each risk: *Why it is weak*, *Evidence from assessment*, and *Recommended action*.
+   - **TOP 3 RISKS Section** explicitly highlighting critical failure vulnerabilities.
 7. **Interactive Learning Mindmap (`/mindmap`):**
    - Interactive visual graph built with **React Flow**.
-   - Color-coded nodes:
-     - 🔴 **Red/Orange:** Weak areas (Top Critical Risks)
-     - 🟡 **Yellow:** Moderate proficiency
-     - 🟢 **Green:** Strong competency
-   - Clicking any node opens a slide-out **Detail Drawer** showing:
-     - Why the student needs it
-     - Key topics to learn
-     - Curated recommended resources & links
-     - Estimated effort (e.g. `6-8 Hours`)
-     - Tactical practice recommendations.
+   - Color-coded nodes (Red/Orange = Weak areas, Yellow = Moderate, Green = Strong).
+   - Detail Drawer with curated recommended resources, key topics, and effort estimates.
 
 ---
 
 ## 🛠️ Tech Stack
 
 - **Frontend:** React 18, Vite, TypeScript, Tailwind CSS, React Flow (`reactflow`), Lucide React, Canvas Confetti.
-- **Backend:** Node.js, Express, TypeScript, `multer`, `pdf-parse`, `uuid`, CORS.
+- **Backend:** Node.js, Express, TypeScript, `multer`, `pdf-parse`, `uuid`, CORS, `tsx`.
 - **AI Engine (Dual-Mode):**
   - Live **Google Gemini API** adapter (`gemini-1.5-flash`) via `GEMINI_API_KEY`.
   - Fallback **High-Fidelity Placement Simulator** requiring zero configuration or external API keys out of the box.
@@ -66,24 +57,59 @@ College students prepare for technical campus placements using their resumes and
 
 ## 🏃 Running Locally
 
-Both the backend and frontend are pre-configured to run concurrently:
+```bash
+# Install dependencies
+npm run build
+
+# Start both Backend & Frontend concurrently
+npm run dev
+```
+
+Visit **`http://localhost:5173`** (or `http://localhost:5174`).
+
+---
+
+## 🌐 Deploying on Render (Step-by-Step Guide)
+
+Render allows you to host both the Backend API and Frontend Client easily.
+
+### Option A: Deploying Backend as Web Service & Frontend as Static Site (Recommended)
+
+#### Step 1: Deploy Backend (Web Service)
+1. Go to [Render Dashboard](https://dashboard.render.com/) ➔ Click **New + ➔ Web Service**.
+2. Connect your GitHub repository: `https://github.com/MayankPandey00/HireLensAI`.
+3. Fill in settings:
+   - **Name:** `hirelens-backend`
+   - **Root Directory:** `server`
+   - **Build Command:** `npm install && npm run build`
+   - **Start Command:** `node dist/server.js`
+4. Add Environment Variables (optional):
+   - `PORT` = `5000`
+   - `GEMINI_API_KEY` = *(Optional Gemini key)*
+5. Click **Create Web Service** and copy your backend URL (e.g., `https://hirelens-backend.onrender.com`).
+
+#### Step 2: Deploy Frontend (Static Site)
+1. In Render Dashboard, click **New + ➔ Static Site**.
+2. Connect your GitHub repository: `https://github.com/MayankPandey00/HireLensAI`.
+3. Fill in settings:
+   - **Name:** `hirelens-frontend`
+   - **Root Directory:** `client`
+   - **Build Command:** `npm install && npm run build`
+   - **Publish Directory:** `dist`
+4. Go to **Redirects/Rewrites** tab in Render and add a rewrite rule for Single Page Application (SPA) routing:
+   - **Source:** `/*`
+   - **Destination:** `/index.html`
+   - **Action:** `Rewrite` (200)
+5. Click **Create Static Site**.
+
+---
+
+## 📤 Pushing Changes to GitHub
+
+To push all changes to your GitHub repository:
 
 ```bash
-# Terminal 1: Start Backend (Port 5000)
-cd server
-npm run dev
-
-# Terminal 2: Start Frontend (Port 5173)
-cd client
-npm run dev
+git add .
+git commit -m "feat: dynamic assessment questions, live test timer, sequential navigation, and deployment updates"
+git push origin main
 ```
-
-Visit **`http://localhost:5173`** in your browser.
-
-### Optional Live LLM Configuration:
-In `server/.env`:
-```env
-PORT=5000
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-*(If left empty, HireLens automatically uses its built-in realistic placement intelligence adapter).*

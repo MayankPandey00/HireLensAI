@@ -38,6 +38,7 @@ export interface AssessmentQuestion {
   prompt: string;
   type: 'multiple_choice' | 'code_approach' | 'scenario_defense';
   options?: string[];
+  correctOptionIndex?: number;
   starterCode?: string;
   defenseClaimId?: string;
   claimReference?: string;

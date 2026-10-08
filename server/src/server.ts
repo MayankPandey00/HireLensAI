@@ -6,7 +6,8 @@ import apiRoutes from './routes/api';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 app.use(cors({
   origin: '*',
@@ -37,7 +38,35 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 HireLens AI Server listening on http://localhost:${PORT}`);
-  console.log(`🔍 Health check: http://localhost:${PORT}/api/health`);
-});
+function startServer(port: number, attempts = 0) {
+  const server = app.listen(port, HOST, () => {
+    console.log(`🚀 HireLens AI Server listening on http://localhost:${port}`);
+    console.log(`🔍 Health check: http://localhost:${port}/api/health`);
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      if (attempts < 5) {
+        console.warn(`⚠️ Port ${port} is busy or in TIME_WAIT. Retrying in 1 second... (Attempt ${attempts + 1}/5)`);
+        setTimeout(() => startServer(port, attempts + 1), 1000);
+      } else {
+        console.error(`❌ Port ${port} is permanently in use by another process. Please stop the process using port ${port}.`);
+        process.exit(1);
+      }
+    } else {
+      console.error('Server error:', err);
+    }
+  });
+
+  // Graceful shutdown on reload/stop
+  const shutdown = () => {
+    server.close(() => {
+      process.exit(0);
+    });
+  };
+
+  process.once('SIGTERM', shutdown);
+  process.once('SIGINT', shutdown);
+}
+
+startServer(PORT);

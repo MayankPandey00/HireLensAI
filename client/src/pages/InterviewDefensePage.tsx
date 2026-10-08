@@ -8,7 +8,8 @@ import {
   HelpCircle, 
   Lightbulb, 
   AlertTriangle,
-  Award
+  Award,
+  CheckCircle2
 } from 'lucide-react';
 import { AssessmentBundle, StudentAnswer, ResumeRealityCheck } from '../types';
 import { evaluateAssessment } from '../services/api';
@@ -22,6 +23,26 @@ export const InterviewDefensePage: React.FC = () => {
   const [answers, setAnswers] = useState<Record<string, StudentAnswer>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showHomePromptModal, setShowHomePromptModal] = useState(false);
+
+  useEffect(() => {
+    // Mark assessment completed so navigating back to /assessment is blocked
+    sessionStorage.setItem('hirelens_test_completed', 'true');
+
+    // Intercept back button popstate
+    window.history.pushState(null, '', window.location.href);
+
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      window.history.pushState(null, '', window.location.href);
+      setShowHomePromptModal(true);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   useEffect(() => {
     const rawBundle = sessionStorage.getItem('hirelens_assessmentBundle');
@@ -69,27 +90,20 @@ export const InterviewDefensePage: React.FC = () => {
   };
 
   const handlePreFillInterviewAnswers = () => {
-    const mockInterviewAns: Record<string, StudentAnswer> = {
-      'com-1': {
-        questionId: 'com-1',
-        answerText: 'During our final year project, a team member insisted on using MongoDB whereas our data had relational transactional requirements. I scheduled a benchmarking session comparing schemas, explained ACID consistency requirements, and we collaboratively decided on PostgreSQL with JSONB columns for flexible schemas.'
-      },
-      'com-2': {
-        questionId: 'com-2',
-        answerText: 'In a campus hackathon, an unhandled null pointer caused our auth service to crash 1 hour before demos. I quickly isolated the failing commit using git bisect, deployed a hotfix with optional chaining, and communicated the bug transparently to the mentors.'
-      },
-      'com-3': {
-        questionId: 'com-3',
-        answerText: 'When required to integrate Redis caching in 48 hours without prior experience, I studied the official Redis quickstart, built an isolated spike on localhost to understand TTL and keyspace expiration, and verified latency improvements using Apache Bench before committing.'
-      }
-    };
+    const mockInterviewAns: Record<string, StudentAnswer> = {};
 
-    // Pre-fill project defense answers with partial depth to trigger realistic risk detection
-    interviewQuestions.filter(q => q.category === 'project_defense').forEach(q => {
-      mockInterviewAns[q.id] = {
-        questionId: q.id,
-        answerText: 'We used standard in-memory caching with Redis and set an expiration TTL of 30 minutes. We did not face major cache stampedes because traffic was primarily simulated in localhost testing.'
-      };
+    interviewQuestions.forEach(q => {
+      if (q.category === 'communication') {
+        mockInterviewAns[q.id] = {
+          questionId: q.id,
+          answerText: 'In our capstone engineering project, when facing technical disagreement or high-pressure deadlines, I scheduled structured benchmarking sessions, evaluated trade-offs transparently using technical metrics (latency, schema consistency, maintainability), and communicated findings clearly to ensure alignment.'
+        };
+      } else if (q.category === 'project_defense') {
+        mockInterviewAns[q.id] = {
+          questionId: q.id,
+          answerText: 'We implemented our technical claims using industry standard practices, modular architecture, and unit testing. Under load testing, we optimized query execution plans, tuned connection pooling parameters, and monitored resource utilization using APM metrics.'
+        };
+      }
     });
 
     const combined = { ...answers, ...mockInterviewAns };
@@ -276,6 +290,45 @@ export const InterviewDefensePage: React.FC = () => {
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Home Navigation Confirmation Modal */}
+      {showHomePromptModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+          <div className="glass-panel p-6 sm:p-8 rounded-2xl border border-slate-800 max-w-md w-full shadow-2xl space-y-5 bg-slate-900/95 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-950 border border-indigo-700 flex items-center justify-center text-cyan-400 mx-auto shadow-lg shadow-indigo-950">
+              <CheckCircle2 className="w-6 h-6 text-cyan-400" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-white">Test is Completed</h3>
+              <p className="text-xs text-slate-400">
+                Your technical assessment is completed. Going back to assessment is disabled.
+              </p>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Do you want to move to the Home page?
+            </p>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowHomePromptModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-colors"
+              >
+                Stay on Defense Page
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-white hover:bg-cyan-400 transition-all shadow-md shadow-cyan-500/20"
+              >
+                Yes, Move to Home Page
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

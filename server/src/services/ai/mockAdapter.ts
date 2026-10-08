@@ -10,6 +10,7 @@ import {
   FlowEdge 
 } from '../../types/schema';
 import { getCompanyBenchmark } from '../companyBenchmarkService';
+import { generateDynamicQuestions } from './questionBank';
 
 export class MockAIAdapter implements AIProvider {
   async analyzeResume(resumeText: string, company: string, role: string): Promise<ResumeRealityCheck> {
@@ -113,178 +114,7 @@ export class MockAIAdapter implements AIProvider {
   }
 
   async generateAssessment(realityCheck: ResumeRealityCheck): Promise<AssessmentQuestion[]> {
-    const questions: AssessmentQuestion[] = [
-      // 5 Aptitude Questions
-      {
-        id: 'apt-1',
-        category: 'aptitude',
-        subtopic: 'Quantitative - Work & Time',
-        prompt: 'Pipe A can fill a tank in 12 hours, while Pipe B can empty it in 18 hours. If both pipes are opened simultaneously, in how many hours will the tank be completely filled?',
-        type: 'multiple_choice',
-        options: ['24 hours', '30 hours', '36 hours', '48 hours'],
-        estimatedMinutes: 2
-      },
-      {
-        id: 'apt-2',
-        category: 'aptitude',
-        subtopic: 'Quantitative - Profit & Loss',
-        prompt: 'A trader sells an article at 20% profit. If the cost price had been 10% less and the selling price $18 less, the profit would have been 30%. What is the cost price?',
-        type: 'multiple_choice',
-        options: ['$600', '$500', '$450', '$400'],
-        estimatedMinutes: 2
-      },
-      {
-        id: 'apt-3',
-        category: 'aptitude',
-        subtopic: 'Logical Reasoning - Blood Relations & Sequences',
-        prompt: 'Pointing to a photograph, Rohit said, "His mother is the only daughter of my mother." How is Rohit related to the person in the photograph?',
-        type: 'multiple_choice',
-        options: ['Father', 'Maternal Uncle', 'Brother', 'Grandfather'],
-        estimatedMinutes: 2
-      },
-      {
-        id: 'apt-4',
-        category: 'aptitude',
-        subtopic: 'Logical Reasoning - Syllogisms',
-        prompt: 'Statements: 1. All engineers are problem solvers. 2. Some problem solvers are leaders. Conclusions: I. Some engineers are leaders. II. All leaders are problem solvers.',
-        type: 'multiple_choice',
-        options: ['Only conclusion I follows', 'Only conclusion II follows', 'Either I or II follows', 'Neither I nor II follows'],
-        estimatedMinutes: 2
-      },
-      {
-        id: 'apt-5',
-        category: 'aptitude',
-        subtopic: 'Data Interpretation - Probability',
-        prompt: 'Two fair six-sided dice are rolled. What is the probability that the sum of the numbers is a prime number?',
-        type: 'multiple_choice',
-        options: ['5/12', '7/18', '15/36', '1/2'],
-        estimatedMinutes: 2
-      },
-
-      // 5 CS Fundamentals Questions
-      {
-        id: 'cs-1',
-        category: 'cs_fundamentals',
-        subtopic: 'DBMS - Query Optimization & Indexing',
-        prompt: 'You have a table `Orders` with 10M rows and columns `(user_id, order_date, total_amount)`. An index exists on `(user_id, order_date)`. Which query can FULLY utilize this index?',
-        type: 'multiple_choice',
-        options: [
-          'SELECT * FROM Orders WHERE order_date = "2024-01-01"',
-          'SELECT * FROM Orders WHERE user_id = 104 ORDER BY order_date DESC',
-          'SELECT * FROM Orders WHERE YEAR(order_date) = 2024',
-          'SELECT * FROM Orders WHERE total_amount > 500'
-        ],
-        estimatedMinutes: 2
-      },
-      {
-        id: 'cs-2',
-        category: 'cs_fundamentals',
-        subtopic: 'Operating Systems - Concurrency & Deadlocks',
-        prompt: 'Which of the following conditions is NOT strictly required for a deadlock to occur under Coffman criteria?',
-        type: 'multiple_choice',
-        options: ['Mutual Exclusion', 'Hold and Wait', 'Preemption allowed by OS', 'Circular Wait'],
-        estimatedMinutes: 2
-      },
-      {
-        id: 'cs-3',
-        category: 'cs_fundamentals',
-        subtopic: 'Computer Networks - TCP vs UDP & Handshake',
-        prompt: 'During TCP connection termination, why does the client enter the `TIME_WAIT` state for 2*MSL (Maximum Segment Lifetime)?',
-        type: 'multiple_choice',
-        options: [
-          'To conserve memory buffers on the server',
-          'To ensure the final ACK was received and prevent old duplicate packets from interfering with new connections',
-          'To renegotiate sliding window size',
-          'To wait for ARP cache resolution'
-        ],
-        estimatedMinutes: 2
-      },
-      {
-        id: 'cs-4',
-        category: 'cs_fundamentals',
-        subtopic: 'Operating Systems - Virtual Memory & Page Faults',
-        prompt: 'What happens in hardware/kernel when a page fault occurs?',
-        type: 'multiple_choice',
-        options: [
-          'The CPU executes an interrupt, switches to kernel mode, swaps the page from disk into RAM, updates page table, and restarts instruction',
-          'The process is immediately terminated with SIGSEGV',
-          'The CPU clears L1/L2 cache and retries fetch',
-          'The virtual address is silently rewritten to physical address 0'
-        ],
-        estimatedMinutes: 2
-      },
-      {
-        id: 'cs-5',
-        category: 'cs_fundamentals',
-        subtopic: 'OOP & System Design Patterns',
-        prompt: 'Which design pattern is best suited for decoupling an abstraction from its implementation so that both can vary independently without subclass explosion?',
-        type: 'multiple_choice',
-        options: ['Bridge Pattern', 'Singleton Pattern', 'Decorator Pattern', 'Factory Pattern'],
-        estimatedMinutes: 2
-      },
-
-      // 2 DSA Questions
-      {
-        id: 'dsa-1',
-        category: 'dsa',
-        subtopic: 'DSA - Sliding Window & Two Pointers',
-        prompt: 'Problem: Given an array of integers `nums` and an integer `k`, find the maximum sum of any contiguous subarray of size `k`. Describe your algorithm approach, edge cases, and state time & space complexity.',
-        type: 'code_approach',
-        starterCode: `function maxSubarraySum(nums: number[], k: number): number {\n  // Implement sliding window approach\n}`,
-        estimatedMinutes: 4
-      },
-      {
-        id: 'dsa-2',
-        category: 'dsa',
-        subtopic: 'DSA - Trees & Lowest Common Ancestor',
-        prompt: 'Problem: Given a Binary Search Tree (BST) and two nodes `p` and `q`, write the algorithm to find their Lowest Common Ancestor (LCA). Explain how BST ordering allows an O(h) solution without auxiliary memory.',
-        type: 'code_approach',
-        starterCode: `function lowestCommonAncestor(root: TreeNode | null, p: TreeNode, q: TreeNode): TreeNode | null {\n  // Exploit BST properties\n}`,
-        estimatedMinutes: 4
-      },
-
-      // 3 Communication / Behavioral Questions
-      {
-        id: 'com-1',
-        category: 'communication',
-        subtopic: 'Behavioral - STAR Conflict Resolution',
-        prompt: 'Describe a situation where a team member disagreed with your architectural or technical choice during a college group project. How did you handle the conflict and what was the outcome?',
-        type: 'scenario_defense',
-        estimatedMinutes: 3
-      },
-      {
-        id: 'com-2',
-        category: 'communication',
-        subtopic: 'Behavioral - Ownership Under Failure',
-        prompt: 'Tell me about a time you pushed a bug to production or broke the build shortly before a deadline. What immediate action did you take, how did you communicate it, and what was your post-mortem fix?',
-        type: 'scenario_defense',
-        estimatedMinutes: 3
-      },
-      {
-        id: 'com-3',
-        category: 'communication',
-        subtopic: 'Behavioral - Learning Under Pressure',
-        prompt: 'You are assigned a critical ticket requiring a technology or framework you have never used before, with only 48 hours to deliver. Walk me step-by-step through how you ramp up and validate your solution.',
-        type: 'scenario_defense',
-        estimatedMinutes: 3
-      }
-    ];
-
-    // Add Resume Project Defense Questions dynamically generated from the candidate's claims!
-    realityCheck.technicalClaims.forEach((claim, idx) => {
-      questions.push({
-        id: `defense-${claim.id || idx}`,
-        category: 'project_defense',
-        subtopic: `Project Defense - ${claim.projectOrExperience}`,
-        prompt: `[Resume Reality Check] You claimed: "${claim.claim}"\n\nInterviewer Defense Question: ${claim.defenseQuestion}`,
-        type: 'scenario_defense',
-        defenseClaimId: claim.id,
-        claimReference: claim.claim,
-        estimatedMinutes: 3
-      });
-    });
-
-    return questions;
+    return generateDynamicQuestions(realityCheck);
   }
 
   async evaluateAssessment(
@@ -297,74 +127,62 @@ export class MockAIAdapter implements AIProvider {
     const answerMap = new Map<string, StudentAnswer>();
     answers.forEach(a => answerMap.set(a.questionId, a));
 
-    // Evaluate Aptitude (correct choices: apt-1: 36h (idx 2), apt-2: $400 (idx 3), apt-3: Maternal Uncle (idx 1), apt-4: Neither (idx 3), apt-5: 15/36 (idx 2))
-    const correctAptitude: Record<string, number> = {
-      'apt-1': 2,
-      'apt-2': 3,
-      'apt-3': 1,
-      'apt-4': 3,
-      'apt-5': 2,
-    };
-
     let aptCorrect = 0;
-    let aptAnswered = 0;
-    ['apt-1', 'apt-2', 'apt-3', 'apt-4', 'apt-5'].forEach(qId => {
-      const ans = answerMap.get(qId);
-      if (ans && ans.selectedOptionIndex !== undefined) {
-        aptAnswered++;
-        if (ans.selectedOptionIndex === correctAptitude[qId]) {
-          aptCorrect++;
+    let aptTotal = 0;
+    let csCorrect = 0;
+    let csTotal = 0;
+
+    questions.forEach(q => {
+      const ans = answerMap.get(q.id);
+      if (q.category === 'aptitude') {
+        aptTotal++;
+        if (ans && ans.selectedOptionIndex !== undefined && q.correctOptionIndex !== undefined) {
+          if (ans.selectedOptionIndex === q.correctOptionIndex) {
+            aptCorrect++;
+          }
+        }
+      } else if (q.category === 'cs_fundamentals') {
+        csTotal++;
+        if (ans && ans.selectedOptionIndex !== undefined && q.correctOptionIndex !== undefined) {
+          if (ans.selectedOptionIndex === q.correctOptionIndex) {
+            csCorrect++;
+          }
         }
       }
     });
 
-    // Baseline aptitude score around 70-80% if answered, fallback realistic hackathon score
-    const aptitudeScore = aptAnswered > 0 ? Math.round((aptCorrect / 5) * 100) : 68;
+    const aptitudeScore = aptTotal > 0 ? Math.max(45, Math.min(95, Math.round((aptCorrect / aptTotal) * 100))) : 68;
+    const csScore = csTotal > 0 ? Math.max(50, Math.min(92, Math.round((csCorrect / csTotal) * 100))) : 64;
 
-    // Evaluate CS Fundamentals (correct: cs-1: idx 1, cs-2: idx 2, cs-3: idx 1, cs-4: idx 0, cs-5: idx 0)
-    const correctCS: Record<string, number> = {
-      'cs-1': 1,
-      'cs-2': 2,
-      'cs-3': 1,
-      'cs-4': 0,
-      'cs-5': 0
-    };
-
-    let csCorrect = 0;
-    ['cs-1', 'cs-2', 'cs-3', 'cs-4', 'cs-5'].forEach(qId => {
-      const ans = answerMap.get(qId);
-      if (ans && ans.selectedOptionIndex === correctCS[qId]) {
-        csCorrect++;
-      }
-    });
-    // Typical placement reality: CS Fundamentals is often 60-70%
-    const csScore = Math.max(55, Math.min(90, Math.round((csCorrect / 5) * 100) || 64));
-
-    // Evaluate DSA (based on text answer quality or length)
-    const dsaAns1 = answerMap.get('dsa-1')?.answerText || '';
-    const dsaAns2 = answerMap.get('dsa-2')?.answerText || '';
-    let dsaScore = 58; // DSA is typically an identified risk area for college students
-    if (dsaAns1.length > 50 && dsaAns2.length > 50) {
-      dsaScore = 74;
-    } else if (dsaAns1.length > 20 || dsaAns2.length > 20) {
-      dsaScore = 65;
+    // Evaluate DSA questions dynamically
+    const dsaQuestions = questions.filter(q => q.category === 'dsa');
+    let dsaScore = 58;
+    if (dsaQuestions.length > 0) {
+      const dsaAnswers = dsaQuestions.map(q => answerMap.get(q.id)?.answerText || '');
+      const avgDsaLen = dsaAnswers.reduce((acc, text) => acc + text.length, 0) / dsaQuestions.length;
+      if (avgDsaLen > 60) dsaScore = 78;
+      else if (avgDsaLen > 20) dsaScore = 66;
+      else dsaScore = 55;
     }
 
-    // Evaluate Communication
-    const comm1 = answerMap.get('com-1')?.answerText || '';
-    const comm2 = answerMap.get('com-2')?.answerText || '';
-    const comm3 = answerMap.get('com-3')?.answerText || '';
-    let commScore = 76;
-    const avgCommLen = (comm1.length + comm2.length + comm3.length) / 3;
-    if (avgCommLen > 100) commScore = 84;
-    else if (avgCommLen < 30) commScore = 62;
+    // Evaluate Communication questions dynamically
+    const commQuestions = questions.filter(q => q.category === 'communication');
+    let commScore = 74;
+    if (commQuestions.filter(Boolean).length > 0) {
+      const commAnswers = commQuestions.map(q => answerMap.get(q.id)?.answerText || '');
+      const avgCommLen = commAnswers.reduce((acc, text) => acc + text.length, 0) / commQuestions.length;
+      if (avgCommLen > 100) commScore = 85;
+      else if (avgCommLen > 30) commScore = 72;
+      else commScore = 60;
+    }
 
     // Evaluate Project Defense (claims)
-    let projectDefenseScore = 56; // High risk area by default!
-    const defenseAnswers = answers.filter(a => a.questionId.startsWith('defense-'));
-    if (defenseAnswers.length > 0) {
-      const avgDefenseLen = defenseAnswers.reduce((acc, curr) => acc + (curr.answerText?.length || 0), 0) / defenseAnswers.length;
-      if (avgDefenseLen > 120) projectDefenseScore = 78;
+    let projectDefenseScore = 56;
+    const defenseQuestions = questions.filter(q => q.category === 'project_defense');
+    if (defenseQuestions.length > 0) {
+      const defenseAnswers = defenseQuestions.map(q => answerMap.get(q.id)?.answerText || '');
+      const avgDefenseLen = defenseAnswers.reduce((acc, text) => acc + text.length, 0) / defenseQuestions.length;
+      if (avgDefenseLen > 120) projectDefenseScore = 80;
       else if (avgDefenseLen > 40) projectDefenseScore = 68;
       else projectDefenseScore = 54;
     }

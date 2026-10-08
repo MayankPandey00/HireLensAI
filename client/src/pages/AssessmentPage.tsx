@@ -10,7 +10,9 @@ import {
   Sparkles, 
   BookOpen, 
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle,
+  LogOut
 } from 'lucide-react';
 import { AssessmentBundle, AssessmentQuestion, StudentAnswer } from '../types';
 
@@ -21,6 +23,67 @@ export const AssessmentPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'aptitude' | 'cs_fundamentals' | 'dsa'>('all');
   const [answers, setAnswers] = useState<Record<string, StudentAnswer>>({});
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [isTestCompleted, setIsTestCompleted] = useState(false);
+
+  // Live Test Countdown Timer State (30 minutes total = 1800 seconds)
+  const TOTAL_TEST_SECONDS = 1800;
+  const [timeLeft, setTimeLeft] = useState<number>(TOTAL_TEST_SECONDS);
+
+  useEffect(() => {
+    // If test is already completed, block assessment page
+    if (sessionStorage.getItem('hirelens_test_completed') === 'true') {
+      setIsTestCompleted(true);
+      return;
+    }
+
+    // Push history state to intercept browser back button
+    window.history.pushState(null, '', window.location.href);
+
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      window.history.pushState(null, '', window.location.href);
+      setShowLeaveModal(true);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  const confirmLeaveAndReset = () => {
+    // Reset test timer and answers on leaving
+    sessionStorage.removeItem('hirelens_test_startTime');
+    sessionStorage.removeItem('hirelens_answers');
+    setShowLeaveModal(false);
+    navigate('/reality-check');
+  };
+
+  useEffect(() => {
+    let startTime = sessionStorage.getItem('hirelens_test_startTime');
+    if (!startTime) {
+      startTime = Date.now().toString();
+      sessionStorage.setItem('hirelens_test_startTime', startTime);
+    }
+
+    const updateTimer = () => {
+      const elapsedSeconds = Math.floor((Date.now() - parseInt(startTime!, 10)) / 1000);
+      const remaining = Math.max(0, TOTAL_TEST_SECONDS - elapsedSeconds);
+      setTimeLeft(remaining);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     const rawBundle = sessionStorage.getItem('hirelens_assessmentBundle');
@@ -87,27 +150,25 @@ export const AssessmentPage: React.FC = () => {
   };
 
   const handleQuickPreFillAnswers = () => {
-    // Convenient for demo/testing to pre-fill realistic student responses
-    const mockAns: Record<string, StudentAnswer> = {
-      'apt-1': { questionId: 'apt-1', selectedOptionIndex: 2, answerText: '36 hours' },
-      'apt-2': { questionId: 'apt-2', selectedOptionIndex: 3, answerText: '$400' },
-      'apt-3': { questionId: 'apt-3', selectedOptionIndex: 1, answerText: 'Maternal Uncle' },
-      'apt-4': { questionId: 'apt-4', selectedOptionIndex: 3, answerText: 'Neither I nor II follows' },
-      'apt-5': { questionId: 'apt-5', selectedOptionIndex: 0, answerText: '5/12' }, // intentional subtle mistake to test risk detection!
-      'cs-1': { questionId: 'cs-1', selectedOptionIndex: 0, answerText: 'SELECT * FROM Orders WHERE order_date = "2024-01-01"' }, // intentional mistake (leftmost prefix rule violation)
-      'cs-2': { questionId: 'cs-2', selectedOptionIndex: 2, answerText: 'Preemption allowed by OS' },
-      'cs-3': { questionId: 'cs-3', selectedOptionIndex: 1, answerText: 'To ensure the final ACK was received' },
-      'cs-4': { questionId: 'cs-4', selectedOptionIndex: 0, answerText: 'The CPU executes an interrupt, switches to kernel mode' },
-      'cs-5': { questionId: 'cs-5', selectedOptionIndex: 0, answerText: 'Bridge Pattern' },
-      'dsa-1': { 
-        questionId: 'dsa-1', 
-        answerText: 'We can maintain a sliding window of size k. First calculate the sum of first k elements. Then slide right one element at a time by adding nums[i] and subtracting nums[i-k]. However, handling negative integers and sub-arrays with variable constraints might require monotonic queue.'
-      },
-      'dsa-2': {
-        questionId: 'dsa-2',
-        answerText: 'In a BST, if both p and q are less than current root, LCA is in left subtree. If both are greater, LCA is in right subtree. If one is smaller and one is larger, current node is the Lowest Common Ancestor. Time complexity is O(h) where h is tree height.'
+    // Convenient for demo/testing to pre-fill realistic student responses dynamically
+    const mockAns: Record<string, StudentAnswer> = {};
+
+    technicalQuestions.forEach((q) => {
+      if (q.type === 'multiple_choice' && q.options && q.options.length > 0) {
+        const optIndex = q.correctOptionIndex !== undefined ? q.correctOptionIndex : 0;
+        mockAns[q.id] = {
+          questionId: q.id,
+          selectedOptionIndex: optIndex,
+          answerText: q.options[optIndex] || 'Selected option',
+        };
+      } else if (q.type === 'code_approach') {
+        mockAns[q.id] = {
+          questionId: q.id,
+          answerText: `To solve ${q.subtopic}: We analyze the invariants and bounds. First validate constraints, then apply optimal algorithmic strategy with time complexity O(N log N) or O(N) and auxiliary space O(1) or O(N). Handle boundary conditions such as empty input arrays, negative integers, and single-element edge cases.`,
+        };
       }
-    };
+    });
+
     const combined = { ...answers, ...mockAns };
     setAnswers(combined);
     sessionStorage.setItem('hirelens_answers', JSON.stringify(combined));
@@ -116,6 +177,7 @@ export const AssessmentPage: React.FC = () => {
   const totalAnswered = technicalQuestions.filter(q => answers[q.id]?.answerText !== undefined).length;
 
   const handleNextStage = () => {
+    sessionStorage.setItem('hirelens_test_completed', 'true');
     navigate('/interview');
   };
 
@@ -134,7 +196,7 @@ export const AssessmentPage: React.FC = () => {
           </h1>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={handleQuickPreFillAnswers}
@@ -144,10 +206,25 @@ export const AssessmentPage: React.FC = () => {
             <span>Auto-fill Sample Answers (Demo)</span>
           </button>
 
-          <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-cyan-400 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" />
-            <span>Timed: 35m Remaining</span>
+          <div className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+            timeLeft < 60
+              ? 'bg-rose-950/80 text-rose-300 border-rose-700/80 animate-pulse'
+              : timeLeft < 300
+              ? 'bg-amber-950/80 text-amber-300 border-amber-700/80'
+              : 'bg-slate-900 border-slate-800 text-cyan-400'
+          }`}>
+            <Clock className={`w-3.5 h-3.5 ${timeLeft < 300 ? 'animate-spin text-amber-400' : 'text-cyan-400'}`} />
+            <span>Time Remaining: {formatTime(timeLeft)}</span>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowLeaveModal(true)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-300 bg-rose-950/60 border border-rose-800/80 hover:bg-rose-900/80 transition-all shadow-sm"
+          >
+            <LogOut className="w-3.5 h-3.5 text-rose-400" />
+            <span>Leave Test</span>
+          </button>
         </div>
       </div>
 
@@ -235,9 +312,15 @@ export const AssessmentPage: React.FC = () => {
               </span>
             </div>
 
-            <span className="text-[11px] text-slate-400 font-mono">
-              Category: {currentQuestion.category.toUpperCase()}
-            </span>
+            <div className="flex items-center gap-3 text-xs font-mono">
+              <span className="text-slate-400 flex items-center gap-1 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800">
+                <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                Est: {currentQuestion.estimatedMinutes || 2}m 00s
+              </span>
+              <span className="text-slate-400">
+                Category: {currentQuestion.category.toUpperCase()}
+              </span>
+            </div>
           </div>
 
           {/* Question Prompt */}
@@ -340,6 +423,83 @@ export const AssessmentPage: React.FC = () => {
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Leave Test Confirmation Modal */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="glass-panel p-6 sm:p-8 rounded-2xl border border-rose-800/80 max-w-md w-full shadow-2xl space-y-5 bg-slate-900/95">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="w-10 h-10 rounded-xl bg-rose-950/80 border border-rose-800/80 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Leave Assessment Test?</h3>
+                <p className="text-xs text-slate-400">Action will reset test progress</p>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Are you sure you want to leave the test? If you leave now, your assessment timer and answers will be <span className="text-rose-400 font-semibold">reset</span>.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLeaveModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-colors"
+              >
+                Cancel / Stay on Test
+              </button>
+              <button
+                type="button"
+                onClick={confirmLeaveAndReset}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-500 transition-colors shadow-lg shadow-rose-600/30"
+              >
+                Yes, Leave & Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Test Already Completed Overlay Modal */}
+      {isTestCompleted && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+          <div className="glass-panel p-6 sm:p-8 rounded-2xl border border-cyan-800 max-w-md w-full shadow-2xl space-y-5 bg-slate-900/95 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-cyan-950 border border-cyan-700 flex items-center justify-center text-cyan-400 mx-auto shadow-lg shadow-cyan-950">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-white">Test Completed</h3>
+              <p className="text-xs text-slate-400">
+                You have already completed the technical assessment and moved to the defense round.
+              </p>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Do you want to return to the Home page?
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold bg-cyan-500 text-white hover:bg-cyan-400 transition-all shadow-md shadow-cyan-500/20"
+              >
+                Go to Home Page
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/interview')}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-colors"
+              >
+                Go to Defense Round
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

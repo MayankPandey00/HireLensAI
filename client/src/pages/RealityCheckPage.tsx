@@ -6,7 +6,8 @@ import {
   AlertTriangle, 
   Building2, 
   ArrowRight, 
-  HelpCircle, 
+  ArrowLeft,
+  HelpCircle,
   Target, 
   Award,
   BookOpen
@@ -46,6 +47,12 @@ export const RealityCheckPage: React.FC = () => {
       setIsGenerating(true);
       setError(null);
       const res = await generateAssessment(sessionId);
+
+      // Clear previous test flags when starting a new assessment
+      sessionStorage.removeItem('hirelens_test_completed');
+      sessionStorage.removeItem('hirelens_test_startTime');
+      sessionStorage.removeItem('hirelens_answers');
+
       sessionStorage.setItem('hirelens_assessmentId', res.assessmentId);
       sessionStorage.setItem('hirelens_assessmentBundle', JSON.stringify(res.bundle));
       navigate('/assessment');
@@ -266,14 +273,25 @@ export const RealityCheckPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleStartAssessment}
-          disabled={isGenerating}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl text-sm font-bold bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50"
-        >
-          <span>Generate Assessment & Begin</span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => navigate('/setup')}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Previous: Setup & Intake</span>
+          </button>
+
+          <button
+            onClick={handleStartAssessment}
+            disabled={isGenerating}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl text-sm font-bold bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50"
+          >
+            <span>Generate Assessment & Begin</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
     </div>

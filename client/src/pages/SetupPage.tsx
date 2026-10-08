@@ -14,13 +14,14 @@ import {
 import { analyzeResume } from '../services/api';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 
-const SAMPLE_RESUME_TEXT = `MAYANK PANDEY
+const SAMPLE_RESUMES = [
+  `ALEX RIVERS
 Final Year B.Tech Computer Science & Engineering
-Email: mayank.pandey@university.edu | GitHub: github.com/mayank | Portfolio: mayank.dev
+Email: alex.rivers@sample-university.edu | GitHub: github.com/alex-rivers-sample | Portfolio: alexrivers.dev
 
 EDUCATION:
 Bachelor of Technology in Computer Science & Engineering (2021 - 2025)
-CGPA: 8.8 / 10.0
+CGPA: 8.9 / 10.0
 
 TECHNICAL SKILLS:
 Languages: TypeScript, JavaScript, Python, C++, SQL
@@ -40,8 +41,96 @@ PROJECTS:
 - Deployed automated CI/CD pipeline using GitHub Actions and AWS EC2 with Nginx reverse proxy.
 
 ACHIEVEMENTS & RELEVANT COURSEWORK:
-- Solved 400+ problems on LeetCode across Data Structures, Dynamic Programming, and Graph algorithms.
-- Core Coursework: Database Management Systems (DBMS), Operating Systems, Computer Networks, Object-Oriented Programming (OOP).`;
+- Solved 450+ problems on LeetCode across Data Structures, Dynamic Programming, and Graph algorithms.
+- Core Coursework: Database Management Systems (DBMS), Operating Systems, Computer Networks, Object-Oriented Programming (OOP).`,
+
+  `JORDAN LEE
+Final Year B.Tech Computer Science & Engineering
+Email: jordan.lee@sample-university.edu | GitHub: github.com/jordan-lee-sample | Portfolio: jordanlee.dev
+
+EDUCATION:
+Bachelor of Technology in Computer Science & Engineering (2021 - 2025)
+CGPA: 9.1 / 10.0
+
+TECHNICAL SKILLS:
+Languages: Java, C++, Go, Python, SQL
+Backend & Systems: Spring Boot, gRPC, Apache Kafka, Microservices Architecture
+Databases & Storage: PostgreSQL, Redis, Cassandra, ElasticSearch
+DevOps & Cloud: Docker, Kubernetes, AWS (Lambda, ECS, DynamoDB), Git, CI/CD
+
+PROJECTS:
+1. High-Throughput Event Streaming & Analytics Engine
+- Developed an asynchronous event ingestion pipeline using Go, Apache Kafka, and Redis caching.
+- Processed 10,000+ mock events/sec with sub-50ms latency using partition key tuning and worker pool pattern.
+- Optimized PostgreSQL database indexes and execution plans, reducing query overhead by 60%.
+
+2. Containerized Microservices Payment Gateway
+- Built resilient payment processing backend in Spring Boot with circuit breaker pattern and retry logic.
+- Implemented JWT authentication with rate-limiting middleware to defend against DDoS attacks.
+- Automated multi-container orchestration using Docker Compose and Kubernetes deployment manifests.
+
+ACHIEVEMENTS & RELEVANT COURSEWORK:
+- Global Rank Top 5% in competitive programming contests (LeetCode / CodeChef).
+- Core Coursework: Distributed Systems, Operating Systems, Advanced Database Systems, Computer Networks.`,
+
+  `SAM TAYLOR
+Final Year B.Tech Computer Science & Engineering
+Email: sam.taylor@sample-university.edu | GitHub: github.com/sam-taylor-sample | Portfolio: samtaylor.dev
+
+EDUCATION:
+Bachelor of Technology in Computer Science & Engineering (2021 - 2025)
+CGPA: 8.7 / 10.0
+
+TECHNICAL SKILLS:
+Languages: TypeScript, Python, Java, SQL, Rust
+Frontend & Mobile: React.js, Next.js, Tailwind CSS, WebSockets
+Backend & Cloud: Node.js, FastAPI, Docker, Kubernetes, AWS, Serverless
+Databases & Caching: MongoDB, PostgreSQL, Redis, DynamoDB
+
+PROJECTS:
+1. Real-Time Distributed Task Queue & Monitoring Dashboard
+- Designed distributed task scheduling platform using Python, Redis Streams, and FastAPI.
+- Implemented real-time telemetry streaming via WebSockets to a React/Next.js dashboard.
+- Containerized application with Docker and configured horizontal pod autoscaling on Kubernetes.
+
+2. Cloud-Native Media Processing Microservices
+- Engineered serverless video processing workflow leveraging AWS S3, Lambda, and DynamoDB.
+- Integrated JWT authentication and RBAC authorization middleware to secure API endpoints.
+- Managed infrastructure as code using Terraform and automated testing via GitHub Actions.
+
+ACHIEVEMENTS & RELEVANT COURSEWORK:
+- Open-source contributor to modern web frameworks and developer toolings.
+- Core Coursework: Cloud Computing, Software Architecture, Web Security, System Design.`,
+
+  `MORGAN CHEN
+Final Year B.Tech Computer Science & Engineering
+Email: morgan.chen@sample-university.edu | GitHub: github.com/morgan-chen-sample | Portfolio: morganchen.dev
+
+EDUCATION:
+Bachelor of Technology in Computer Science & Engineering (2021 - 2025)
+CGPA: 9.0 / 10.0
+
+TECHNICAL SKILLS:
+Languages: Python, Scala, Java, SQL, C++
+Big Data & Streaming: Apache Spark, Apache Kafka, Airflow, Hadoop
+Databases & Cloud: Snowflake, PostgreSQL, MongoDB, Redis, AWS (S3, EMR)
+Tools & DevOps: Docker, Git, Linux/Unix Shell Scripting, CI/CD
+
+PROJECTS:
+1. Real-Time Fraud Detection Pipeline
+- Built scalable streaming pipeline with Apache Spark Streaming and Kafka to process transaction streams.
+- Achieved real-time feature generation and anomaly detection with under 100ms end-to-end processing delay.
+- Optimized query performance on PostgreSQL analytics tables using partitioning and materialized views.
+
+2. Automated Data Pipeline Orchestration Engine
+- Developed modular Apache Airflow DAGs for automated ETL workflows processing 100GB+ daily synthetic datasets.
+- Implemented automated data validation checks and alert notifications for pipeline failures.
+- Containerized workflow execution environment using Docker and deployed on AWS EC2.
+
+ACHIEVEMENTS & RELEVANT COURSEWORK:
+- Winner at National Level Hackathon for Data Platform Innovation.
+- Core Coursework: Big Data Processing, Data Structures & Algorithms, Database Systems, Computer Networks.`
+];
 
 const COMPANY_SUGGESTIONS = [
   { name: 'Google', defaultRole: 'Software Engineer (L3)' },
@@ -53,9 +142,9 @@ const COMPANY_SUGGESTIONS = [
 export const SetupPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'upload' | 'text'>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [resumeText, setResumeText] = useState<string>('');
+  const [sampleResumeText, setSampleResumeText] = useState<string>('');
+  const [sampleCandidateName, setSampleCandidateName] = useState<string>('');
   const [targetCompany, setTargetCompany] = useState<string>('Google');
   const [targetRole, setTargetRole] = useState<string>('Software Engineer (L3)');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,13 +158,23 @@ export const SetupPage: React.FC = () => {
         return;
       }
       setSelectedFile(file);
+      setSampleResumeText('');
+      setSampleCandidateName('');
       setErrorMessage(null);
     }
   };
 
   const handlePreloadSample = () => {
-    setActiveTab('text');
-    setResumeText(SAMPLE_RESUME_TEXT);
+    let randomIndex = Math.floor(Math.random() * SAMPLE_RESUMES.length);
+    if (SAMPLE_RESUMES.length > 1 && SAMPLE_RESUMES[randomIndex] === sampleResumeText) {
+      randomIndex = (randomIndex + 1) % SAMPLE_RESUMES.length;
+    }
+    const chosenSample = SAMPLE_RESUMES[randomIndex];
+    const candidateName = chosenSample.split('\n')[0].trim();
+
+    setSampleResumeText(chosenSample);
+    setSampleCandidateName(candidateName);
+    setSelectedFile(null);
     setTargetCompany('Google');
     setTargetRole('Software Engineer (L3)');
     setErrorMessage(null);
@@ -85,30 +184,33 @@ export const SetupPage: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (activeTab === 'upload' && !selectedFile) {
-      setErrorMessage('Please select a PDF resume file to upload, or switch to the text tab.');
-      return;
-    }
-
-    if (activeTab === 'text' && (!resumeText || resumeText.trim().length < 50)) {
-      setErrorMessage('Please provide sufficient resume text (at least 50 characters).');
+    if (!selectedFile && !sampleResumeText) {
+      setErrorMessage('Please upload a PDF resume file or click "Pre-fill Random Sample Resume".');
       return;
     }
 
     try {
       setIsSubmitting(true);
       const formData = new FormData();
-      if (activeTab === 'upload' && selectedFile) {
+      if (selectedFile) {
         formData.append('resume', selectedFile);
-      } else {
-        formData.append('resumeText', resumeText);
+      } else if (sampleResumeText) {
+        formData.append('resumeText', sampleResumeText);
       }
       formData.append('targetCompany', targetCompany);
       formData.append('targetRole', targetRole);
 
       const response = await analyzeResume(formData);
 
-      // Save session info to sessionStorage
+      // Clear previous session flags so a fresh new assessment can be taken
+      sessionStorage.removeItem('hirelens_test_completed');
+      sessionStorage.removeItem('hirelens_test_startTime');
+      sessionStorage.removeItem('hirelens_assessmentBundle');
+      sessionStorage.removeItem('hirelens_assessmentId');
+      sessionStorage.removeItem('hirelens_answers');
+      sessionStorage.removeItem('hirelens_report');
+
+      // Save new session info to sessionStorage
       sessionStorage.setItem('hirelens_sessionId', response.sessionId);
       sessionStorage.setItem('hirelens_realityCheck', JSON.stringify(response.realityCheck));
 
@@ -220,7 +322,7 @@ export const SetupPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Resume Input Mode (Upload vs Text) */}
+        {/* Candidate Resume Upload Card */}
         <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-2">
@@ -230,95 +332,61 @@ export const SetupPage: React.FC = () => {
               </span>
             </div>
 
-            {/* Tab switchers + Sample Pre-fill */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handlePreloadSample}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 hover:bg-indigo-900/80 transition-all shadow-sm"
-              >
-                <Code className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Pre-fill Sample Resume (1-Click)</span>
-              </button>
-
-              <div className="bg-slate-900 p-0.5 rounded-lg border border-slate-800 flex text-xs">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('upload')}
-                  className={`px-3 py-1 rounded-md transition-all ${
-                    activeTab === 'upload'
-                      ? 'bg-cyan-500 text-white font-medium'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Upload PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('text')}
-                  className={`px-3 py-1 rounded-md transition-all ${
-                    activeTab === 'text'
-                      ? 'bg-cyan-500 text-white font-medium'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Paste Text
-                </button>
-              </div>
-            </div>
+            {/* Sample Pre-fill Button */}
+            <button
+              type="button"
+              onClick={handlePreloadSample}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 hover:bg-indigo-900/80 transition-all shadow-sm"
+            >
+              <Code className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Pre-fill Random Sample Resume</span>
+            </button>
           </div>
 
-          {activeTab === 'upload' ? (
-            /* PDF Upload Box */
-            <div className="relative border-2 border-dashed border-slate-700/80 hover:border-cyan-500/60 rounded-2xl p-8 text-center transition-colors bg-slate-900/30">
-              <input
-                type="file"
-                accept=".pdf,application/pdf"
-                onChange={handleFileChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-              />
-              <div className="flex flex-col items-center justify-center">
-                <div className="w-14 h-14 rounded-2xl bg-cyan-950/60 border border-cyan-700/40 flex items-center justify-center text-cyan-400 mb-3 shadow-lg shadow-cyan-950/50">
-                  <UploadCloud className="w-7 h-7" />
-                </div>
-                {selectedFile ? (
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-emerald-400 flex items-center gap-1.5 justify-center">
-                      <CheckCircle className="w-4 h-4" />
-                      {selectedFile.name}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Ready for analysis
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-sm font-semibold text-slate-200 mb-1">
-                      Drag and drop your PDF resume, or <span className="text-cyan-400 underline">browse</span>
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      Standard single or multi-page PDF resumes up to 10MB
-                    </p>
-                  </>
-                )}
+          {/* PDF Upload Box */}
+          <div className="relative border-2 border-dashed border-slate-700/80 hover:border-cyan-500/60 rounded-2xl p-8 text-center transition-colors bg-slate-900/30">
+            <input
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={handleFileChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            />
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-cyan-950/60 border border-cyan-700/40 flex items-center justify-center text-cyan-400 mb-3 shadow-lg shadow-cyan-950/50">
+                <UploadCloud className="w-7 h-7" />
               </div>
+              {selectedFile ? (
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-emerald-400 flex items-center gap-1.5 justify-center">
+                    <CheckCircle className="w-4 h-4" />
+                    {selectedFile.name}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Ready for analysis
+                  </p>
+                </div>
+              ) : sampleCandidateName ? (
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-cyan-300 flex items-center gap-1.5 justify-center">
+                    <CheckCircle className="w-4 h-4 text-cyan-400" />
+                    Sample Resume Pre-filled: {sampleCandidateName}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Sample profile loaded • Drag & drop a PDF anytime to replace, or click Pre-fill again for another sample
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-slate-200 mb-1">
+                    Drag and drop your PDF resume, or <span className="text-cyan-400 underline">browse</span>
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Standard single or multi-page PDF resumes up to 10MB
+                  </p>
+                </>
+              )}
             </div>
-          ) : (
-            /* Paste Text Area */
-            <div className="space-y-2">
-              <textarea
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-                placeholder="Paste your plain resume text here..."
-                rows={12}
-                className="w-full p-4 rounded-xl bg-slate-900 border border-slate-700/80 text-white font-mono text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors leading-relaxed"
-              />
-              <p className="text-[11px] text-slate-400 flex justify-between">
-                <span>Text mode is ideal for rapid testing and formatted exports.</span>
-                <span>{resumeText.length} characters</span>
-              </p>
-            </div>
-          )}
+          </div>
 
           {errorMessage && (
             <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300 flex items-center gap-2">

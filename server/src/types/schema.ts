@@ -49,6 +49,7 @@ export interface AssessmentQuestion {
   prompt: string;
   type: 'multiple_choice' | 'code_approach' | 'scenario_defense';
   options?: string[];            // For MCQs
+  correctOptionIndex?: number;   // For MCQs
   starterCode?: string;          // For coding/DSA
   defenseClaimId?: string;       // Linked to ResumeClaim
   claimReference?: string;       // e.g. "Regarding your claim about Redis caching..."
